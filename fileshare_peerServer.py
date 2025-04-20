@@ -2,6 +2,8 @@ import socket
 import threading
 import os
 
+from user_manager import register_user,login_user
+
 SHARED_FOLDER = "shared"
 os.makedirs(SHARED_FOLDER, exist_ok=True)
 
@@ -24,6 +26,7 @@ class FileSharePeer:
     def handle_client(self, sock):
         try:
             command = sock.recv(1024).decode()
+            
 
             if command == "LIST":
                 files = os.listdir(SHARED_FOLDER)
@@ -50,6 +53,26 @@ class FileSharePeer:
                             break
                         f.write(chunk)
                 print(f"[<] Received and saved: {filename}")
+            
+            elif command == "REGISTER":
+                sock.send(b"USERNAME:")
+                username = sock.recv(1024).decode().strip()
+
+                sock.send(b"PASSWORD:")
+                password = sock.recv(1024).decode().strip()
+
+                success, message = register_user(username, password)
+                sock.send(message.encode())
+
+            elif command == "LOGIN":
+                sock.send(b"USERNAME:")
+                username = sock.recv(1024).decode().strip()
+
+                sock.send(b"PASSWORD:")
+                password = sock.recv(1024).decode().strip()
+
+                success, message = login_user(username, password)
+                sock.send(message.encode())
 
         except Exception as e:
             print(f"[!] Error: {e}")
