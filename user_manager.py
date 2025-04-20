@@ -17,14 +17,11 @@ def save_users(users):
 
 def register_user(username, password):
     users = load_users()
-    print(users)
     if username in users:
         return False, "Username already exists."
 
     hashed = hash_password(password)
     users[username] = {"hashed": hashed}
-    print("in register")
-    # print(users.toString())
     save_users(users)
     return True, "Registration successful."
 
@@ -33,7 +30,6 @@ def login_user(username, password):
     if username not in users:
         return False, "User not found."
 
-    # salt = users[username]["salt"]
     hashed = users[username]["hashed"]
 
     if verify_password(password, hashed):
