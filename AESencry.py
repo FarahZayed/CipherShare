@@ -3,11 +3,12 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 import os
+import hashlib
 
 backend = default_backend()
-SALT = b'static_salt_here'  # Replace with random salt in production
+SALT = b'static_salt_here'
 ITERATIONS = 100_000
-MARKER = b"CIPHERSHARE_OK"  # Known value to verify correct decryption
+MARKER = b"CIPHERSHARE_OK"
 
 def derive_key(password: str) -> bytes:
     kdf = PBKDF2HMAC(
@@ -24,12 +25,17 @@ def encrypt_file(in_path, out_path, key):
     cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=backend)
     encryptor = cipher.encryptor()
 
-    with open(in_path, 'rb') as f_in, open(out_path, 'wb') as f_out:
-        f_out.write(iv)  # Prepend IV
-        f_out.write(encryptor.update(MARKER))  # Encrypt marker first
+    with open(in_path, 'rb') as f_in:
+        plaintext = f_in.read()
 
-        while chunk := f_in.read(4096):
-            f_out.write(encryptor.update(chunk))
+    # Compute SHA-256 hash of plaintext
+    file_hash = hashlib.sha256(plaintext).digest()
+
+    with open(out_path, 'wb') as f_out:
+        f_out.write(iv)
+        f_out.write(encryptor.update(MARKER))
+        f_out.write(encryptor.update(file_hash))  # Encrypted hash
+        f_out.write(encryptor.update(plaintext))
         f_out.write(encryptor.finalize())
 
 def decrypt_file(in_path, out_path, key):
@@ -42,7 +48,17 @@ def decrypt_file(in_path, out_path, key):
         if marker != MARKER:
             raise ValueError("❌ Invalid password or corrupted file.")
 
+        stored_hash = decryptor.update(f_in.read(32))  # SHA-256 hash is 32 bytes
+
+        decrypted_data = b""
+        while chunk := f_in.read(4096):
+            decrypted_data += decryptor.update(chunk)
+        decrypted_data += decryptor.finalize()
+
+        # Verify hash
+        calculated_hash = hashlib.sha256(decrypted_data).digest()
+        if stored_hash != calculated_hash:
+            raise ValueError("❌ File integrity check failed! The file may be corrupted or altered.")
+
         with open(out_path, 'wb') as f_out:
-            while chunk := f_in.read(4096):
-                f_out.write(decryptor.update(chunk))
-            f_out.write(decryptor.finalize())
+            f_out.write(decrypted_data)
