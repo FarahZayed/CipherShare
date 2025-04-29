@@ -1,7 +1,7 @@
 import socket
 import os
 from session_manager import get_current_user, is_logged_in,login_session,logout_session
-
+from AESencry import encrypt_file, derive_key ,decrypt_file
 
 DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
@@ -21,36 +21,63 @@ def list_files(peer_ip, peer_port):
 
 def download_file(peer_ip, peer_port, filename):
     try:
+        password = input("Enter decryption password: ")
+        key = derive_key(password)
+
         s = socket.socket()
         s.connect((peer_ip, peer_port))
         s.send(f"GET {filename}".encode())
 
-        filepath = os.path.join(DOWNLOAD_FOLDER, filename)
-        with open(filepath, "wb") as f:
+        # Read the first response
+        first_chunk = s.recv(4096)
+        if first_chunk == b"FILE_NOT_FOUND":
+            print("[!] The requested file does not exist on the server.")
+            s.close()
+            return
+
+        # Continue with normal process if file exists
+        encrypted_path = os.path.join(DOWNLOAD_FOLDER, "temp_encrypted")
+        with open(encrypted_path, "wb") as f:
+            f.write(first_chunk)  # write the first valid chunk
             while True:
                 chunk = s.recv(4096)
                 if not chunk:
                     break
                 f.write(chunk)
-
-        print(f"[✔] Downloaded '{filename}' to '{filepath}'")
         s.close()
+
+        decrypted_path = os.path.join(DOWNLOAD_FOLDER, filename)
+        decrypt_file(encrypted_path, decrypted_path, key)
+        os.remove(encrypted_path)
+        print(f"[✔] Decrypted and saved to '{decrypted_path}'")
+
     except Exception as e:
         print(f"[!] Error downloading file: {e}")
 
+
 def upload_file(peer_ip, peer_port, local_path):
     try:
-        filename = os.path.basename(local_path)
+        password = input("Enter encryption password: ")
+        key = derive_key(password)
+
+        temp_path = "temp_encrypted"  # use a fixed temp name
+
+        encrypt_file(local_path, temp_path, key)
+
+        filename = os.path.basename(local_path)  # send original filename
         s = socket.socket()
         s.connect((peer_ip, peer_port))
         s.send(f"UPLOAD {filename}".encode())
 
-        with open(local_path, "rb") as f:
+        with open(temp_path, "rb") as f:
             s.sendfile(f)
+
         s.close()
-        print(f"[↑] Uploaded '{filename}' to peer {peer_ip}:{peer_port}")
+        os.remove(temp_path)
+        print(f"[↑] Encrypted and uploaded '{filename}' to peer {peer_ip}:{peer_port}")
     except Exception as e:
         print(f"[!] Error uploading file: {e}")
+
 
 def register_user(peer_ip, peer_port):
     try:

@@ -2,7 +2,7 @@ import json
 import os
 from crypto_utils import hash_password, verify_password
 
-USER_DB = "CipherShare/users.json"
+USER_DB = "users.json"
 
 def load_users():
     if not os.path.exists(USER_DB):

@@ -4,6 +4,7 @@ import os
 
 from user_manager import register_user,login_user
 
+
 SHARED_FOLDER = "shared"
 os.makedirs(SHARED_FOLDER, exist_ok=True)
 
@@ -13,6 +14,7 @@ class FileSharePeer:
         self.port = port
         self.peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+    
     def start_peer(self):
         self.peer_socket.bind((self.host, self.port))
         self.peer_socket.listen(5)
