@@ -28,17 +28,17 @@ def download_file(peer_ip, peer_port, filename):
         s.connect((peer_ip, peer_port))
         s.send(f"GET {filename}".encode())
 
-        # Read the first response
+        # First response
         first_chunk = s.recv(4096)
         if first_chunk == b"FILE_NOT_FOUND":
             print("[!] The requested file does not exist on the server.")
             s.close()
             return
 
-        # Continue with normal process if file exists
+        # Save encrypted file
         encrypted_path = os.path.join(DOWNLOAD_FOLDER, "temp_encrypted")
         with open(encrypted_path, "wb") as f:
-            f.write(first_chunk)  # write the first valid chunk
+            f.write(first_chunk)
             while True:
                 chunk = s.recv(4096)
                 if not chunk:
@@ -47,12 +47,21 @@ def download_file(peer_ip, peer_port, filename):
         s.close()
 
         decrypted_path = os.path.join(DOWNLOAD_FOLDER, filename)
-        decrypt_file(encrypted_path, decrypted_path, key)
-        os.remove(encrypted_path)
-        print(f"[✔] Decrypted and saved to '{decrypted_path}'")
+
+        # ✅ Attempt decryption and handle failure
+        try:
+            decrypt_file(encrypted_path, decrypted_path, key)
+            print(f"[✔] Decrypted and saved to '{decrypted_path}'")
+        except ValueError as ve:
+            print(f"[!] Decryption failed: {ve}")
+            if os.path.exists(decrypted_path):
+                os.remove(decrypted_path)  # delete invalid output
+        finally:
+            os.remove(encrypted_path)  # always remove temp encrypted
 
     except Exception as e:
         print(f"[!] Error downloading file: {e}")
+
 
 
 def upload_file(peer_ip, peer_port, local_path):
