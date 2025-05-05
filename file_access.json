@@ -1,0 +1,29 @@
+{
+    "filename1.txt": {
+        "owner": "alice",
+        "shared_with": [
+            "bob",
+            "charlie"
+        ]
+    },
+    "filename2.txt": {
+        "owner": "farouh",
+        "shared_with": []
+    },
+    "file.txt": {
+        "owner": "farah",
+        "shared_with": [
+            "alice_smith"
+        ]
+    },
+    "test.txt": {
+        "owner": "farah",
+        "shared_with": [
+            "alice_smith"
+        ]
+    },
+    "Fall2024.pdf": {
+        "owner": "farah",
+        "shared_with": []
+    }
+}
