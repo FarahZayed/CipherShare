@@ -55,6 +55,9 @@ def download_file(peer_ip, peer_port, filename):
         try:
             decrypt_file(encrypted_path, decrypted_path, key)
             print(f"[✔] Decrypted and saved to '{decrypted_path}'")
+            print(f"[DEBUG] Requesting: {filename}")
+            print(f"[DEBUG] Saving to: {decrypted_path}")
+
         except ValueError as ve:
             print(f"[!] Decryption failed: {ve}")
             if os.path.exists(decrypted_path):

@@ -25,5 +25,9 @@
     "Fall2024.pdf": {
         "owner": "farah",
         "shared_with": []
+    },
+    "testfile.txt": {
+        "owner": "testuser2",
+        "shared_with": []
     }
 }
